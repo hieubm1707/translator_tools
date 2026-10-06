@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "Translator Tool"
+  },
+  "extDescription": {
+    "message": "Dịch nhanh đoạn văn bản được bôi đen, dịch cả trang song song và phụ đề song ngữ cho bài giảng Coursera."
+  },
+  "cmdTranslateSelection": {
+    "message": "Dịch đoạn văn bản đang chọn"
+  }
+}

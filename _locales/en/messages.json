@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "Translator Tool"
+  },
+  "extDescription": {
+    "message": "Translate selected text, whole pages side by side, and add dual subtitles to Coursera lectures."
+  },
+  "cmdTranslateSelection": {
+    "message": "Translate the selected text"
+  }
+}

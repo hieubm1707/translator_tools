@@ -1,0 +1,90 @@
+/* Các phần tử extension chèn vào trang. `all: initial` để CSS của trang không làm méo giao diện. */
+#translator-tool-bubble,
+#translator-tool-tooltip,
+#translator-tool-badge {
+  all: initial;
+  position: absolute;
+  z-index: 2147483647;
+  box-sizing: border-box;
+  font: 14px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: #f4f5fa;
+  background: rgba(22, 25, 34, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28), 0 2px 6px rgba(0, 0, 0, 0.18);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  -webkit-font-smoothing: antialiased;
+}
+#translator-tool-bubble div,
+#translator-tool-tooltip div { all: unset; display: block; }
+
+/* Bong bóng dịch vùng chọn */
+#translator-tool-bubble {
+  max-width: 420px;
+  padding: 10px 14px 10px 18px;
+  border-radius: 12px;
+  white-space: pre-wrap;
+  animation: tt-rise 0.14s ease-out;
+}
+#translator-tool-bubble::before {
+  /* vạch màu thương hiệu ở mép trái */
+  content: '';
+  position: absolute; left: 7px; top: 11px; bottom: 11px; width: 3px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #818cf8, #a78bfa);
+}
+#translator-tool-bubble .tt-text { font-size: 14.5px; }
+#translator-tool-bubble .tt-translit {
+  margin-top: 6px; font-size: 12.5px; font-style: italic; color: #b4b9cc;
+}
+#translator-tool-bubble .tt-dict {
+  margin-top: 8px; padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 12.5px; line-height: 1.6; color: #c9cddc; white-space: pre-wrap;
+}
+#translator-tool-bubble .tt-error { color: #fca5a5; }
+
+/* Translate All: tooltip bản dịch khi rê chuột */
+#translator-tool-tooltip {
+  position: fixed;
+  padding: 9px 13px;
+  border-radius: 10px;
+  white-space: pre-wrap;
+  pointer-events: none; /* không chặn hover của trang */
+  animation: tt-fade 0.1s ease-out;
+}
+#translator-tool-tooltip.tt-pending { color: #9ca3b8; font-style: italic; }
+#translator-tool-tooltip.tt-error { color: #fca5a5; }
+
+/* Translate All: ô tiến độ góc dưới phải */
+#translator-tool-badge {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  padding: 6px 12px 6px 28px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  pointer-events: none;
+  animation: tt-rise 0.2s ease-out;
+}
+#translator-tool-badge::before {
+  /* chấm trạng thái */
+  content: '';
+  position: absolute; left: 12px; top: 50%; width: 8px; height: 8px; margin-top: -4px;
+  border-radius: 50%;
+  background: #818cf8;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.25);
+  animation: tt-pulse 1.2s ease-in-out infinite;
+}
+#translator-tool-badge.tt-done::before { background: #4ade80; box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.25); animation: none; }
+
+/* Split & Translate / Translate All: phần chữ của đoạn gốc đang được rê chuột (CSS Custom Highlight API) */
+::highlight(tt-split-hl) {
+  background-color: #fde047;
+  color: #111827;
+}
+
+@keyframes tt-rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes tt-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes tt-pulse { 50% { opacity: 0.45; } }

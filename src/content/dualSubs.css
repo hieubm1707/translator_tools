@@ -1,0 +1,8 @@
+/* Phụ đề song ngữ Coursera (dualSubs.js). Lớp phụ đề nằm trong Shadow DOM; file này chỉ chỉnh phần của trang. */
+
+/* Đang bật: ẩn phụ đề gốc của player (video.js tự vẽ hoặc trình duyệt vẽ ::cue) để không bị hai lớp chồng nhau. */
+.tt-dualsub-on .vjs-text-track-display { display: none !important; }
+video.tt-dualsub-on::cue { color: transparent !important; background: transparent !important; text-shadow: none !important; }
+
+/* video.js ẩn thanh điều khiển khi đang phát mà không rê chuột -> hạ phụ đề xuống sát đáy. */
+.vjs-playing.vjs-user-inactive .tt-dualsub-host { --tt-dualsub-bottom: max(12px, 4%); }

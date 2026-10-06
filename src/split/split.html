@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Split Translate</title>
+  <link rel="stylesheet" href="../ui/theme.css" />
+  <link rel="stylesheet" href="split.css" />
+</head>
+<body>
+  <header>
+    <div class="title">
+      <strong data-i18n="split.title">Translation</strong>
+      <span id="status" data-i18n="split.reading">Reading page…</span>
+    </div>
+    <button class="icon-btn" id="refresh" data-i18n-title="split.refresh">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.22-8.56"/><path d="M21 3v6h-6"/></svg>
+    </button>
+    <button class="icon-btn" id="close" data-i18n-title="split.close">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    </button>
+    <div class="progress"><div class="bar" id="progressBar"></div></div>
+  </header>
+  <main id="list"></main>
+  <script type="module" src="split.js"></script>
+</body>
+</html>

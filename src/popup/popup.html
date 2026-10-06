@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="../ui/theme.css" />
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <span class="logo"><svg class="icon" viewBox="0 0 24 24"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg></span>
+      <span class="brand-name">Translator Tool</span>
+    </div>
+    <div class="header-actions">
+    <select id="engineSelect" class="engine-select" data-i18n-title="popup.engineTitle"></select>
+    <button class="icon-btn" id="open-options" data-i18n-title="popup.settings">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+    </div>
+  </header>
+
+  <div class="lang-pair">
+    <select id="sourceLang" class="lang-select" data-i18n-title="popup.from"></select>
+    <button class="icon-btn swap" id="swapLang" data-i18n-title="popup.swap">
+      <svg class="icon" viewBox="0 0 24 24"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
+    </button>
+    <select id="targetLang" class="lang-select" data-i18n-title="popup.to"></select>
+  </div>
+
+  <section class="card composer">
+    <textarea id="input" rows="4" data-i18n-placeholder="popup.placeholder"></textarea>
+    <div class="composer-foot">
+      <span class="muted hint"><kbd>⌘/Ctrl</kbd> + <kbd>Enter</kbd></span>
+      <button class="btn btn-primary" id="translate" data-i18n="popup.translate">Translate</button>
+    </div>
+  </section>
+
+  <section class="card result" id="resultCard" hidden>
+    <div id="output"></div>
+    <div class="result-foot">
+      <span class="muted" id="engine"></span>
+      <button class="icon-btn" id="copy" data-i18n-title="popup.copy">
+        <svg class="icon" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+      </button>
+    </div>
+  </section>
+
+  <div class="section-title" data-i18n="popup.pageSection">Translate whole page</div>
+  <div class="actions">
+    <button class="action" id="split" aria-pressed="false">
+      <span class="action-badge" data-i18n="popup.activeBadge">On</span>
+      <span class="action-icon"><svg class="icon" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18"/></svg></span>
+      <span class="action-text"><strong>Split &amp; Translate</strong><small data-i18n="popup.splitDesc">Split the page, translation side by side</small></span>
+    </button>
+    <button class="action" id="all" aria-pressed="false">
+      <span class="action-badge" data-i18n="popup.activeBadge">On</span>
+      <span class="action-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>
+      <span class="action-text"><strong>Translate All</strong><small data-i18n="popup.allDesc">Pre-translate, hover to read instantly</small></span>
+    </button>
+  </div>
+  <p class="muted footnote" data-i18n-html="popup.footnote"></p>
+
+  <!-- Chỉ hiện khi tab đang mở là coursera.org (popup.js bỏ hidden). -->
+  <div class="subs-section" id="dualSubSection" hidden>
+    <div class="section-title" data-i18n="subs.section">Coursera video subtitles</div>
+    <section class="card subs-card">
+      <label class="switch"><input type="checkbox" id="dualSubEnabled" /><span class="track"></span><span data-i18n="subs.enable">Dual subtitles</span></label>
+      <div class="subs-grid">
+        <label for="dualSubLang1" data-i18n="subs.line1">Subtitle 1</label>
+        <select id="dualSubLang1" data-i18n-title="subs.line1Title"></select>
+        <label for="dualSubLang2" data-i18n="subs.line2">Subtitle 2</label>
+        <select id="dualSubLang2" data-i18n-title="subs.line2Title"></select>
+        <label for="dualSubSize" data-i18n="subs.size">Font size</label>
+        <select id="dualSubSize" data-i18n-title="subs.sizeTitle">
+          <option value="small">Small</option>
+          <option value="medium">Medium</option>
+          <option value="large">Large</option>
+          <option value="xlarge">Extra large</option>
+        </select>
+      </div>
+      <label class="switch" data-i18n-title="subs.freeTitle"><input type="checkbox" id="dualSubFree" /><span class="track"></span><span data-i18n="subs.free">Free drag subtitles</span></label>
+
+      <!-- Kiểu hiển thị từng dòng: chọn dòng ở tab, chỉnh màu chữ / màu nền / độ đậm nền; ô màu dựng trong popup.js -->
+      <div class="style-box">
+        <div class="style-head">
+          <span class="style-title" data-i18n="subs.style">Style</span>
+          <div class="seg" role="tablist">
+            <button type="button" class="seg-btn" role="tab" data-line="line1" data-i18n="subs.line1">Subtitle 1</button>
+            <button type="button" class="seg-btn" role="tab" data-line="line2" data-i18n="subs.line2">Subtitle 2</button>
+          </div>
+        </div>
+        <div class="style-preview" aria-hidden="true">
+          <span class="pv" data-line="line1" data-i18n="subs.line1">Subtitle 1</span>
+          <span class="pv" data-line="line2" data-i18n="subs.line2">Subtitle 2</span>
+        </div>
+        <div class="style-row">
+          <span class="style-label" data-i18n="subs.textColor">Text color</span>
+          <div class="swatches" id="swText"></div>
+        </div>
+        <div class="style-row">
+          <span class="style-label" data-i18n="subs.bgColor">Background</span>
+          <div class="swatches" id="swBg"></div>
+        </div>
+        <div class="style-row">
+          <label class="style-label" for="bgOpacity" data-i18n="subs.bgOpacity">Background opacity</label>
+          <div class="range-row">
+            <input type="range" id="bgOpacity" min="0" max="100" step="5" />
+            <output id="bgOpacityValue" for="bgOpacity"></output>
+          </div>
+        </div>
+        <button type="button" class="btn btn-sm reset-btn" id="resetStyle">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          <span data-i18n="subs.resetStyle">Reset to default</span>
+        </button>
+      </div>
+      <p class="muted footnote" id="dualSubHint"></p>
+    </section>
+  </div>
+
+  <footer class="support">
+    <span class="muted" data-i18n="support.short">Find it useful? Support the author</span>
+    <a href="https://www.buymeacoffee.com/hieubm" target="_blank" rel="noopener"><img src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=hieubm&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" alt="Buy me a coffee" /></a>
+  </footer>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

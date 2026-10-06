@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title data-i18n="options.pageTitle">Translator Tool – Settings</title>
+  <link rel="stylesheet" href="../ui/theme.css" />
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <main class="page">
+    <header class="page-header">
+      <span class="logo"><svg class="icon" viewBox="0 0 24 24"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg></span>
+      <div>
+        <h1 data-i18n="options.title">Settings</h1>
+        <p class="muted" data-i18n="options.subtitle">Translator Tool — choose languages and translation engines.</p>
+      </div>
+    </header>
+
+    <section class="card section">
+      <h2 data-i18n="options.uiSection">Interface</h2>
+      <div class="field">
+        <label for="uiLang" data-i18n="options.uiLang">Display language</label>
+        <select id="uiLang"></select>
+        <small class="muted" data-i18n="options.uiLangHint">Applies to the popup, settings, context menu and translation bubbles.</small>
+      </div>
+    </section>
+
+    <section class="card section">
+      <h2 data-i18n="options.langSection">Languages</h2>
+      <div class="lang-row">
+        <div class="field">
+          <label for="sourceLang" data-i18n="options.from">Translate from</label>
+          <select id="sourceLang"></select>
+        </div>
+        <button class="icon-btn swap" id="swapLang" type="button" data-i18n-title="options.swap">
+          <svg class="icon" viewBox="0 0 24 24"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
+        </button>
+        <div class="field">
+          <label for="targetLang" data-i18n="options.to">To</label>
+          <select id="targetLang"></select>
+        </div>
+      </div>
+    </section>
+
+    <section class="card section">
+      <h2 data-i18n="options.engineSection">Translation engine</h2>
+      <div class="field">
+        <label for="engine" data-i18n="options.quickEngine">Quick translate (popup, selection)</label>
+        <select id="engine"></select>
+      </div>
+      <div class="field">
+        <label for="pageEngine" data-i18n="options.pageEngine">Whole page (Split &amp; Translate, Translate All)</label>
+        <select id="pageEngine"></select>
+        <small class="muted" data-i18n="options.pageEngineHint">Tip: choose Gemini for more natural translations. The first pass is slower, later ones come from memory.</small>
+      </div>
+      <label class="switch row-switch">
+        <input type="checkbox" id="fallback" />
+        <span class="track"></span>
+        <span>
+          <strong data-i18n="options.fallback">Switch Google engine on errors</strong>
+          <small class="muted" data-i18n="options.fallbackHint">Google → Google (GTX) → Google (V2) when blocked or rate-limited.</small>
+        </span>
+      </label>
+    </section>
+
+    <section class="card section" id="gemini-section">
+      <h2>Gemini</h2>
+      <div class="field">
+        <label for="geminiApiKey">API key</label>
+        <input type="password" id="geminiApiKey" autocomplete="off" placeholder="AIza…" />
+        <small class="muted" data-i18n-html="options.geminiKeyHint"></small>
+      </div>
+      <div class="field">
+        <label for="geminiModel">Model</label>
+        <div class="input-group">
+          <input type="text" id="geminiModel" list="geminiModelList" placeholder="gemini-flash-latest" />
+          <button class="btn" id="loadGeminiModels" type="button">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.22-8.56"/><path d="M21 3v6h-6"/></svg>
+            <span data-i18n="options.loadGemini">Check key &amp; load models</span>
+          </button>
+        </div>
+        <datalist id="geminiModelList"></datalist>
+      </div>
+      <div class="field">
+        <label for="fallbackPicker" data-i18n="options.fallbackModels">Fallback models when the daily quota runs out</label>
+        <ol class="chips" id="fallbackChips"></ol>
+        <select id="fallbackPicker"></select>
+        <small class="muted" data-i18n="options.fallbackModelsHint"></small>
+        <small class="quota-status" id="geminiQuotaStatus" hidden></small>
+      </div>
+    </section>
+
+    <section class="card section">
+      <h2 data-i18n="options.memorySection">Translation memory</h2>
+      <div class="field">
+        <label for="cacheTtlDays" data-i18n="options.ttl">Auto-delete translations after</label>
+        <select id="cacheTtlDays">
+          <option value="1" data-i18n="options.ttl1">1 day</option>
+          <option value="7" data-i18n="options.ttl7">7 days</option>
+          <option value="30" data-i18n="options.ttl30">30 days</option>
+          <option value="0" data-i18n="options.ttlNever">Never</option>
+        </select>
+        <small class="muted" data-i18n="options.ttlHint">Counted from translation time. Translations are stored per page (full URL).</small>
+      </div>
+      <div class="cache-row">
+        <strong id="cacheCount">…</strong>
+        <a class="btn" id="openMemory" href="../memory/memory.html" target="_blank" rel="noopener">
+          <span data-i18n="options.viewAll">View all</span>
+          <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </a>
+      </div>
+    </section>
+
+    <section class="card section" id="llm-section">
+      <h2>LLM</h2>
+      <div class="field">
+        <label for="llmProvider">Provider</label>
+        <select id="llmProvider"></select>
+      </div>
+      <div class="field">
+        <label for="llmEndpoint">API endpoint</label>
+        <input type="url" id="llmEndpoint" placeholder="http://localhost:11434/v1" />
+      </div>
+      <div class="field" id="apiKeyRow">
+        <label for="llmApiKey">API key</label>
+        <input type="password" id="llmApiKey" autocomplete="off" />
+        <small class="muted" data-i18n="options.llmKeyHint">Stored only in this browser (chrome.storage.local).</small>
+      </div>
+      <div class="field">
+        <label for="llmModel">Model</label>
+        <div class="input-group">
+          <input type="text" id="llmModel" list="llmModelList" data-i18n-placeholder="options.llmModelPlaceholder" />
+          <button class="btn" id="loadModels" type="button">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.22-8.56"/><path d="M21 3v6h-6"/></svg>
+            <span data-i18n="options.loadList">Load list</span>
+          </button>
+        </div>
+        <datalist id="llmModelList"></datalist>
+      </div>
+    </section>
+
+    <div class="save-bar">
+      <button class="btn btn-primary" id="save" data-i18n="options.save">Save changes</button>
+    </div>
+
+    <footer class="support">
+      <span class="muted" data-i18n="support.long">Translator Tool is free. If you find it useful, buy the author a coffee ☕</span>
+      <a href="https://www.buymeacoffee.com/hieubm" target="_blank" rel="noopener"><img src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=hieubm&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" alt="Buy me a coffee" /></a>
+    </footer>
+  </main>
+  <div class="toast" id="status" role="status"></div>
+  <script type="module" src="options.js"></script>
+</body>
+</html>

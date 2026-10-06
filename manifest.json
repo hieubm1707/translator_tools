@@ -1,0 +1,83 @@
+{
+  "manifest_version": 3,
+  "name": "__MSG_extName__",
+  "version": "0.1.0",
+  "description": "__MSG_extDescription__",
+  "default_locale": "en",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Translator Tool",
+    "default_popup": "src/popup/popup.html"
+  },
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "src/lib/i18n-messages.js",
+        "src/content/content.js"
+      ],
+      "css": [
+        "src/content/content.css"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true,
+      "match_about_blank": true
+    },
+    {
+      "matches": [
+        "https://www.coursera.org/*",
+        "https://coursera.org/*"
+      ],
+      "js": [
+        "src/lib/i18n-messages.js",
+        "src/content/dualSubs.js"
+      ],
+      "css": [
+        "src/content/dualSubs.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "options_page": "src/options/options.html",
+  "permissions": [
+    "activeTab",
+    "alarms",
+    "contextMenus",
+    "storage",
+    "unlimitedStorage"
+  ],
+  "host_permissions": [
+    "https://translate.googleapis.com/*",
+    "https://translate.google.com/*",
+    "https://generativelanguage.googleapis.com/*"
+  ],
+  "commands": {
+    "translate-selection": {
+      "suggested_key": {
+        "default": "Alt+T"
+      },
+      "description": "__MSG_cmdTranslateSelection__"
+    }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "src/split/*"
+      ],
+      "matches": [
+        "<all_urls>"
+      ],
+      "use_dynamic_url": true
+    }
+  ]
+}
