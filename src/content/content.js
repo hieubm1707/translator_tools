@@ -10,6 +10,20 @@
   const MIN_FRAME_AREA = 200 * 100; // bỏ qua iframe quá nhỏ (quảng cáo, tracking…)
   const isLargeEnough = () => IS_TOP || window.innerWidth * window.innerHeight >= MIN_FRAME_AREA;
 
+  // Service worker có thể đang tắt/khởi động lại đúng lúc gửi -> kênh tin nhắn đứt
+  // ("Receiving end does not exist", "message port closed"). Gửi lại vài lần; đoạn đã dịch xong nằm trong bộ nhớ bản dịch nên không tốn thêm.
+  const TRANSIENT_MSG_ERROR = /Receiving end does not exist|message port closed|message channel closed/i;
+  async function sendToWorker(message, retries = 3) {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await chrome.runtime.sendMessage(message);
+      } catch (err) {
+        if (attempt >= retries || !TRANSIENT_MSG_ERROR.test(String(err?.message ?? err))) throw err;
+        await new Promise((r) => setTimeout(r, 500 * 2 ** attempt));
+      }
+    }
+  }
+
   function removeBubble() {
     document.getElementById(BUBBLE_ID)?.remove();
   }
@@ -42,7 +56,12 @@
     const rect = selection.getRangeAt(0).getBoundingClientRect();
     showBubble(rect, { text: t('common.translating') });
 
-    const res = await chrome.runtime.sendMessage({ type: 'TRANSLATE', text });
+    let res;
+    try {
+      res = await sendToWorker({ type: 'TRANSLATE', text });
+    } catch (err) {
+      res = { ok: false, error: String(err?.message ?? err) };
+    }
     showBubble(rect, res?.ok ? res : { error: t('common.error', { error: res?.error ?? t('common.unknown') }) });
   }
 
@@ -233,23 +252,34 @@
     const segments = visibleFirst(collectSegments());
     if (!segments.length) return;
 
-    let done = 0;
     let fromCache = 0;
-    setBadge(t('content.allProgress', { done: 0, total: segments.length }));
-    for (let i = 0; i < segments.length; i += ALL_CHUNK_SIZE) {
-      const chunk = segments.slice(i, i + ALL_CHUNK_SIZE);
-      let res;
-      try {
-        res = await chrome.runtime.sendMessage({ type: 'TRANSLATE_MANY', texts: chunk.map((s) => s.text) });
-      } catch (err) {
-        res = { results: chunk.map(() => ({ ok: false, error: String(err?.message ?? err) })) };
+    // Dịch `list` theo nhóm; -> false nếu đã bị tắt/chạy lại giữa chừng.
+    async function run(list) {
+      let done = 0;
+      setBadge(t('content.allProgress', { done: 0, total: list.length }));
+      for (let i = 0; i < list.length; i += ALL_CHUNK_SIZE) {
+        const chunk = list.slice(i, i + ALL_CHUNK_SIZE);
+        let res;
+        try {
+          res = await sendToWorker({ type: 'TRANSLATE_MANY', texts: chunk.map((s) => s.text) });
+        } catch (err) {
+          res = { results: chunk.map(() => ({ ok: false, error: String(err?.message ?? err) })) };
+        }
+        if (gen !== allGeneration) return false; // đã tắt hoặc chạy lại
+        chunk.forEach((seg, j) => (seg.result = res?.results?.[j] ?? { ok: false, error: res?.error ?? t('common.unknown') }));
+        fromCache += chunk.filter((seg) => seg.result.cached).length;
+        if (hoveredSeg && chunk.includes(hoveredSeg)) showTooltip(hoveredSeg); // đang rê đúng đoạn vừa dịch xong
+        done += chunk.length;
+        setBadge(t('content.allProgress', { done, total: list.length }));
       }
-      if (gen !== allGeneration) return; // đã tắt hoặc chạy lại
-      chunk.forEach((seg, j) => (seg.result = res?.results?.[j] ?? { ok: false, error: res?.error ?? t('common.unknown') }));
-      fromCache += chunk.filter((seg) => seg.result.cached).length;
-      if (hoveredSeg && chunk.includes(hoveredSeg)) showTooltip(hoveredSeg); // đang rê đúng đoạn vừa dịch xong
-      done += chunk.length;
-      setBadge(t('content.allProgress', { done, total: segments.length }));
+      return true;
+    }
+    if (!(await run(segments))) return;
+    // Lỗi thoáng qua (rate-limit, mạng, service worker khởi động lại) -> thử lại một lượt các đoạn lỗi.
+    const retry = segments.filter((s) => !s.result?.ok);
+    if (retry.length) {
+      await new Promise((r) => setTimeout(r, 3000));
+      if (gen !== allGeneration || !(await run(retry))) return;
     }
     const failed = segments.filter((s) => !s.result?.ok).length;
     const cacheNote = fromCache ? t('content.allFromCache', { n: fromCache, total: segments.length }) : '';

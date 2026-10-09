@@ -117,19 +117,44 @@ chrome.commands.onCommand.addListener((command, tab) => {
   }
 });
 
+// ---- Giữ service worker sống khi đang dịch ----
+// Chrome tắt service worker sau ~30s không có sự kiện/API extension nào — kể cả khi đang chờ fetch
+// (Gemini có thể mất hàng chục giây, cộng thêm chờ RetryInfo khi vượt quota phút). Worker bị tắt giữa chừng
+// -> phía gửi nhận "Could not establish connection. Receiving end does not exist" / "message port closed".
+// Gọi một API extension rẻ định kỳ để reset bộ đếm idle trong lúc còn việc.
+let pendingWork = 0;
+let keepAliveTimer;
+function keepAlive(promise) {
+  if (pendingWork++ === 0) keepAliveTimer = setInterval(() => chrome.runtime.getPlatformInfo(), 20_000);
+  return promise.finally(() => {
+    if (--pendingWork === 0) clearInterval(keepAliveTimer);
+  });
+}
+
+// ---- Dịch cả trang lần lượt từng nhóm ----
+// Khung Split gom đoạn của mọi frame vào một hàng đợi nên chỉ có một request tại một thời điểm; còn
+// Translate All chạy riêng ở từng frame (trang chính + iframe) -> nhiều request song song, dễ vượt quota
+// phút (Gemini 429) hoặc bị Google rate-limit. Xếp mọi TRANSLATE_MANY vào một hàng đợi chung cho đều.
+let pageQueue = Promise.resolve();
+function enqueuePage(task) {
+  const run = pageQueue.then(task, task);
+  pageQueue = run.catch(() => {});
+  return run;
+}
+
 // Content script / popup gửi { type: 'TRANSLATE', text } -> trả về kết quả dịch.
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === 'TRANSLATE_MANY') {
-    siteOf(sender)
-      .then((site) => translateMany(message.texts, { purpose: message.purpose ?? 'page', site }))
+    keepAlive(siteOf(sender)
+      .then((site) => enqueuePage(() => translateMany(message.texts, { purpose: message.purpose ?? 'page', site }))))
       .then((results) => sendResponse({ ok: true, results }))
       .catch((err) => sendResponse({ ok: false, error: String(err?.message ?? err) }));
     return true;
   }
   if (message?.type !== 'TRANSLATE') return false;
 
-  siteOf(sender)
-    .then((site) => translate(message.text, { site }))
+  keepAlive(siteOf(sender)
+    .then((site) => translate(message.text, { site })))
     .then((result) => sendResponse({ ok: true, ...result }))
     .catch((err) => sendResponse({ ok: false, error: String(err?.message ?? err) }));
 

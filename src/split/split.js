@@ -61,8 +61,26 @@ function setResult(gen, key, text, isError = false) {
   else el.textContent = text;
 }
 
+// Service worker có thể đang tắt/khởi động lại đúng lúc gửi -> kênh tin nhắn đứt. Gửi lại vài lần.
+const TRANSIENT_MSG_ERROR = /Receiving end does not exist|message port closed|message channel closed/i;
+async function sendToWorker(message, retries = 3) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await chrome.runtime.sendMessage(message);
+    } catch (err) {
+      if (attempt >= retries || !TRANSIENT_MSG_ERROR.test(String(err?.message ?? err))) throw err;
+      await new Promise((r) => setTimeout(r, 500 * 2 ** attempt));
+    }
+  }
+}
+
 async function translateChunk(gen, chunk) {
-  const res = await chrome.runtime.sendMessage({ type: 'TRANSLATE_MANY', texts: chunk.map((s) => s.text) });
+  let res;
+  try {
+    res = await sendToWorker({ type: 'TRANSLATE_MANY', texts: chunk.map((s) => s.text) });
+  } catch (err) {
+    res = { ok: false, error: String(err?.message ?? err) };
+  }
   chunk.forEach((seg, i) => {
     const r = res?.results?.[i] ?? { ok: false, error: res?.error };
     setResult(gen, seg.key, r?.ok ? r.text : t('common.error', { error: r?.error ?? t('common.unknown') }), !r?.ok);
