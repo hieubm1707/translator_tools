@@ -400,6 +400,86 @@
 
   window.addEventListener('resize', () => panel && applyLayout());
 
+  function sendSplitSegments() {
+    splitActive = true;
+    const segments = collectSegments();
+    chrome.runtime.sendMessage({ type: 'SPLIT_SEGMENTS', segments, host: location.hostname, isTop: IS_TOP }).catch(() => {});
+  }
+
+  function enableTranslateAll() {
+    if (IS_TOP) closePanel(); // tắt Split & Translate nếu đang mở
+    splitActive = false;
+    if (isLargeEnough()) startTranslateAll();
+    else translateAllActive = true; // frame nhỏ: chỉ giữ trạng thái, không quét
+  }
+
+  // ---- Giữ chế độ khi chuyển trang ----
+  // Trạng thái chỉ nằm trong content script nên chuyển trang (tải lại) là mất. Frame chính báo chế độ đang bật cho
+  // service worker (lưu theo tab, kèm domain); trang mới cùng domain trong tab đó tự bật lại.
+  // Trang SPA (đổi URL không tải lại, vd. Coursera) giữ nguyên content script -> quét lại khi URL đổi.
+  let savedMode = null;
+  function saveMode() {
+    if (!IS_TOP) return;
+    const mode = panel ? 'split' : translateAllActive ? 'all' : null;
+    if (mode === savedMode) return;
+    savedMode = mode;
+    chrome.runtime.sendMessage({ type: 'SET_PAGE_MODE', mode }).catch(() => {});
+  }
+
+  // Chờ DOM ngừng thay đổi (trang còn đang render) rồi mới quét: yên `quietMs`, chờ tối đa `maxMs`.
+  function whenSettled(quietMs = 700, maxMs = 5000) {
+    return new Promise((resolve) => {
+      if (!document.body) return resolve();
+      let quiet;
+      const finish = () => {
+        observer.disconnect();
+        clearTimeout(quiet);
+        clearTimeout(cap);
+        resolve();
+      };
+      const observer = new MutationObserver(() => {
+        clearTimeout(quiet);
+        quiet = setTimeout(finish, quietMs);
+      });
+      observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+      quiet = setTimeout(finish, quietMs);
+      const cap = setTimeout(finish, maxMs);
+    });
+  }
+
+  async function restoreMode() {
+    const saved = await chrome.runtime.sendMessage({ type: 'GET_PAGE_MODE' }).catch(() => null);
+    if (!saved?.mode) return;
+    await whenSettled();
+    if (saved.mode === 'all') {
+      // Frame chính nhờ service worker báo mọi frame (iframe tải xong trước frame chính chưa tự bật được).
+      if (IS_TOP) chrome.runtime.sendMessage({ type: 'TRANSLATE_ALL_RESTART', resume: true }).catch(() => {});
+      else if (!translateAllActive) enableTranslateAll();
+    } else if (saved.mode === 'split') {
+      if (IS_TOP) {
+        if (!panel && !translateAllActive) openPanel(saved.tabId); // khung dịch tự gửi SPLIT_COLLECT tới mọi frame
+        saveMode();
+      } else if (!splitActive && isLargeEnough()) {
+        sendSplitSegments(); // iframe tải sau khung dịch
+      }
+    }
+  }
+  restoreMode();
+
+  if (IS_TOP) {
+    let lastUrl = location.href.split('#')[0];
+    setInterval(async () => {
+      const url = location.href.split('#')[0];
+      if (url === lastUrl) return;
+      lastUrl = url;
+      if (!panel && !translateAllActive) return;
+      await whenSettled();
+      // Đoạn không đổi lấy từ bộ nhớ bản dịch nên quét lại cả trang không tốn thêm API.
+      if (translateAllActive) chrome.runtime.sendMessage({ type: 'TRANSLATE_ALL_RESTART', resume: false }).catch(() => {});
+      else if (panel) chrome.runtime.sendMessage({ type: 'SPLIT_REFRESH' }).catch(() => {});
+    }, 1000);
+  }
+
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message?.type === 'TRANSLATE_SELECTION') translateSelection();
     if (message?.type === 'SPLIT_TOGGLE' && IS_TOP) {
@@ -411,11 +491,7 @@
       // Khung dịch gửi tới mọi frame; mỗi frame trả đoạn của mình qua SPLIT_SEGMENTS (khung dịch biết frameId qua sender).
       // Chỉ frame chính sendResponse, để khung dịch biết trang có content script hay chưa.
       if (translateAllActive) stopTranslateAll(); // hai chế độ dùng chung danh sách đoạn -> chỉ bật một
-      if (isLargeEnough()) {
-        splitActive = true;
-        const segments = collectSegments();
-        chrome.runtime.sendMessage({ type: 'SPLIT_SEGMENTS', segments, host: location.hostname, isTop: IS_TOP }).catch(() => {});
-      }
+      if (isLargeEnough()) sendSplitSegments();
       if (IS_TOP) sendResponse({ ok: true });
     }
     if (message?.type === 'SPLIT_CLOSE') {
@@ -428,16 +504,12 @@
     if (message?.type === 'PAGE_MODES' && IS_TOP) sendResponse({ split: !!panel, all: translateAllActive });
     // Service worker hỏi URL trang chính (iframe khác domain không tự đọc được) để lưu bản dịch theo trang.
     if (message?.type === 'PAGE_URL' && IS_TOP) sendResponse(location.href);
-    if (message?.type === 'TRANSLATE_ALL_SET') {
+    if (message?.type === 'TRANSLATE_ALL_SET' && !(message.resume && translateAllActive)) { // resume: frame đang dịch thì giữ nguyên
       stopTranslateAll();
       clearSegments();
-      if (message.on) {
-        if (IS_TOP) closePanel(); // tắt Split & Translate nếu đang mở
-        splitActive = false;
-        if (isLargeEnough()) startTranslateAll();
-        else translateAllActive = true; // frame nhỏ: chỉ giữ trạng thái, không quét
-      }
+      if (message.on) enableTranslateAll();
     }
+    saveMode();
   });
 
   document.addEventListener('mousedown', (e) => {

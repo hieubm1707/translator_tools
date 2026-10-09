@@ -35,7 +35,10 @@ Bấm **Translate All** trong popup (hoặc chuột phải → "Translate All �
 - Ô nhỏ góc dưới phải mỗi frame báo tiến độ.
 - Dịch xong, rê chuột vào đoạn gốc → đoạn được tô vàng và tooltip bản dịch hiện ngay (lấy từ bộ nhớ, không gọi API).
 - Split & Translate và Translate All dùng chung danh sách đoạn nên chỉ bật một chế độ tại một thời điểm.
-- Nội dung đổi (sang bài khác trong iframe…) → tắt rồi bật lại Translate All.
+- **Giữ chế độ khi chuyển trang**: chế độ đang bật (Split hoặc Translate All) được nhớ theo tab; sang trang khác
+  **cùng domain** trong tab đó thì tự bật lại (chờ trang render xong rồi mới quét), trang SPA đổi URL thì quét lại.
+  Sang domain khác, bấm tắt, hoặc đóng tab → tắt. Đoạn lặp lại (thanh điều hướng…) lấy từ bộ nhớ bản dịch.
+- Nội dung đổi mà URL không đổi (sang bài khác trong iframe…) → tắt rồi bật lại Translate All.
 
 ## Phụ đề song ngữ video Coursera
 Mở bài giảng video (`coursera.org/learn/<khoá>/lecture/<id>`) → dưới video hiện phụ đề 1 hoặc 2 dòng (phụ đề 2 màu vàng).
@@ -70,10 +73,11 @@ Cài đặt trong popup, mục **Phụ đề video Coursera** (mục này chỉ 
   (429 có `quotaId` chứa `PerDay`) được bỏ qua tới nửa đêm giờ Pacific và chuyển ngay sang model kế tiếp.
 - Bộ nhớ bản dịch của Gemini **dùng chung cho mọi model** (engine lưu là "Gemini"): đổi model không dịch lại trang đã dịch.
 - **Bộ nhớ bản dịch** (IndexedDB, `src/lib/translationCache.js`): mỗi đoạn lưu theo
-  `SHA-256(URL trang, nguồn bản dịch, ngôn ngữ nguồn, ngôn ngữ đích, nội dung đoạn)`. Đoạn đã có hash → lấy ngay, không gọi API;
+  `SHA-256(domain trang, nguồn bản dịch, ngôn ngữ nguồn, ngôn ngữ đích, nội dung đoạn)`. Đoạn đã có hash → lấy ngay, không gọi API;
   trang đổi chữ → chỉ đoạn đổi có hash mới và được dịch. Đổi model/ngôn ngữ → hash mới.
-  - **Theo từng trang**: URL đầy đủ của trang trên thanh địa chỉ (giữ `?query`, bỏ `#anchor`); nội dung trong iframe
-    (vd. bài giảng Coursera) lưu theo URL trang chính. Trang khác → bản dịch riêng, không dùng lại. Popup dùng chung (site rỗng).
+  - **Theo domain**: hash dùng origin của trang chính (vd. `https://www.coursera.org`), nên đoạn lặp lại giữa các trang
+    cùng domain (thanh điều hướng, menu…) chỉ dịch một lần; nội dung trong iframe (vd. bài giảng Coursera) tính theo trang chính.
+    Bản ghi vẫn lưu URL đầy đủ (bỏ `#anchor`) của trang dịch lần đầu để hiển thị. Popup dùng chung (site rỗng).
   - **Hết hạn**: Cài đặt → "Tự xoá bản dịch sau" (1 / 7 / 30 ngày / không bao giờ, mặc định 7), tính từ lúc tạo.
     Bản quá hạn bị bỏ qua khi đọc; `chrome.alarms` dọn hẳn mỗi ngày.
   - **Mỗi lần cập nhật extension** (kể cả bấm Reload bản unpacked) bộ nhớ bị xoá toàn bộ.

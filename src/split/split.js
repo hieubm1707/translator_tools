@@ -142,6 +142,9 @@ chrome.runtime.onMessage.addListener((message, sender) => {
     pump();
   }
 
+  // Trang SPA vừa đổi URL (content script frame chính báo) -> quét lại.
+  if (message?.type === 'SPLIT_REFRESH') collect();
+
   // Content script (ở frame nào cũng được) báo đoạn nào đang được rê chuột.
   if (message?.type === 'SPLIT_HOVER') {
     highlighted?.classList.remove('hl');

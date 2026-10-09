@@ -76,7 +76,7 @@ async function translateTexts(engineName, texts, settings) {
   return texts.map(() => ({ ok: false, error: errors.join(' | '), engine: engineName }));
 }
 
-// Dịch nhiều đoạn. site = URL trang (bản dịch lưu riêng cho từng trang; '' cho popup).
+// Dịch nhiều đoạn. site = URL trang (bản dịch dùng chung trong cùng domain; '' cho popup).
 // -> [{ ok, text?, error?, engine, cached? }] cùng thứ tự `texts`.
 export async function translateMany(texts, { purpose = 'page', site = '' } = {}) {
   const settings = await getSettings();

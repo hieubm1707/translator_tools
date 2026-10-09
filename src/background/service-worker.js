@@ -94,6 +94,50 @@ async function siteOf(sender) {
   return normalizeSite(url ?? '');
 }
 
+// ---- Giữ chế độ (Split / Translate All) theo tab khi chuyển trang ----
+// Frame chính báo chế độ đang bật; trang mới trong cùng tab hỏi lại để tự bật. Chỉ khôi phục khi cùng domain
+// để không tự gửi nội dung của trang web khác cho engine dịch. Lưu ở storage.session: mất khi đóng trình duyệt.
+const modeKey = (tabId) => `pageMode:${tabId}`;
+const originOf = (url) => {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return '';
+  }
+};
+
+async function savedModeFor(sender) {
+  const tabId = sender.tab?.id;
+  if (!tabId) return null;
+  const { [modeKey(tabId)]: saved } = await chrome.storage.session.get(modeKey(tabId));
+  if (!saved) return null;
+  const site = await siteOf(sender);
+  if (!site) return null; // iframe tải trước frame chính: frame chính sẽ báo lại khi khôi phục
+  if (originOf(site) !== saved.origin) {
+    if (sender.frameId === 0) await chrome.storage.session.remove(modeKey(tabId)); // đã sang domain khác -> tắt
+    return null;
+  }
+  return { mode: saved.mode, tabId };
+}
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  const tabId = sender.tab?.id;
+  if (message?.type === 'SET_PAGE_MODE' && tabId && sender.frameId === 0) {
+    if (message.mode) chrome.storage.session.set({ [modeKey(tabId)]: { mode: message.mode, origin: originOf(sender.url) } });
+    else chrome.storage.session.remove(modeKey(tabId));
+  }
+  if (message?.type === 'GET_PAGE_MODE') {
+    savedModeFor(sender).then(sendResponse, () => sendResponse(null));
+    return true;
+  }
+  if (message?.type === 'TRANSLATE_ALL_RESTART' && tabId) {
+    chrome.tabs.sendMessage(tabId, { type: 'TRANSLATE_ALL_SET', on: true, resume: message.resume }).catch(() => {});
+  }
+  return false;
+});
+
+chrome.tabs.onRemoved.addListener((tabId) => chrome.storage.session.remove(modeKey(tabId)));
+
 // Click chuột phải -> "Dịch ..."
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === MENU_ID && tab?.id) {

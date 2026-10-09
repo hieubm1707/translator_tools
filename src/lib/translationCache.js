@@ -1,6 +1,7 @@
 // Bộ nhớ bản dịch lâu dài (IndexedDB của extension, dùng chung cho service worker và trang Cài đặt).
-// Khoá = SHA-256(URL trang + nguồn bản dịch + cặp ngôn ngữ + nội dung đoạn): mỗi trang có bản dịch riêng;
-// đoạn nào đổi chữ thì có hash mới và được dịch lại; đoạn không đổi lấy thẳng từ đây, không gọi API.
+// Khoá = SHA-256(domain trang + nguồn bản dịch + cặp ngôn ngữ + nội dung đoạn): các trang cùng domain dùng chung
+// bản dịch (vd. thanh điều hướng lặp lại ở mọi bài học Coursera chỉ dịch một lần); bản ghi vẫn giữ URL đầy đủ
+// (trường `site`) để biết đoạn được dịch lần đầu ở trang nào. Đoạn nào đổi chữ thì có hash mới và được dịch lại; đoạn không đổi lấy thẳng từ đây, không gọi API.
 // Bản ghi hết hạn sau N ngày kể từ lúc tạo (cài đặt cacheTtlDays): khi đọc coi như chưa có, và được
 // service worker xoá hẳn định kỳ (chrome.alarms).
 const DB_NAME = 'translator-tool';
@@ -28,9 +29,18 @@ function done(tx) {
   });
 }
 
+// URL trang -> phạm vi dùng chung bản dịch (origin, vd. https://www.coursera.org). '' (popup) giữ nguyên.
+function scopeOf(site) {
+  try {
+    return new URL(site).origin;
+  } catch {
+    return site;
+  }
+}
+
 const encoder = new TextEncoder();
 export async function hashKey(site, cacheId, sourceLang, targetLang, text) {
-  const data = encoder.encode([site, cacheId, sourceLang, targetLang, text].join('\u0000'));
+  const data = encoder.encode([scopeOf(site), cacheId, sourceLang, targetLang, text].join('\u0000'));
   const digest = await crypto.subtle.digest('SHA-256', data);
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
